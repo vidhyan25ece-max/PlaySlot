@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>PlaySlot</title>
+</head>
+
+<body>
+
+    <header>
+        <div>
+            <div class="logo">PlaySlot</div>
+            <p>Sports Facility Booking</p>
+        </div>
+
+        <button class="logout-btn" onclick="logout()">
+            Logout
+        </button>
+    </header>
+
+    <main>
+
+        <section class="hero">
+            <h1>Welcome, <span id="userName"></span> 👋</h1>
+            <p>
+                Choose a sports facility and reserve your preferred time slot.
+            </p>
+        </section>
+
+        <section>
+            <h2>Available Facilities</h2>
+
+            <br>
+
+            <div id="facilities"></div>
+        </section>
+        <section class="my-area">
+
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showSection('bookings', this)">
+                    My Bookings
+                </button>
+
+                <button class="tab-btn" onclick="showSection('waitlist', this)">
+                    My Waitlist
+                </button>
+
+                <button class="tab-btn" onclick="showSection('history', this)">
+                    Booking History
+                </button>
+            </div>
+
+            <div id="bookings" class="tab-content active">
+            </div>
+
+            <div id="waitlist" class="tab-content">
+            </div>
+
+            <div id="history" class="tab-content">
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        const API_URL = "http://localhost:5000";
+
+        const loggedInUser =
+            JSON.parse(localStorage.getItem("user"));
+
+        if (!loggedInUser) {
+            window.location.href = "login.html";
+            throw new Error("User not logged in");
+        }
+        function logout() {
+            localStorage.removeItem("user");
+            window.location.href = "login.html";
+        }
+        let currentUserId = Number(loggedInUser.user_id);
+        document.getElementById("userName").innerText =
+            loggedInUser.name;
+        async function bookSlot(facilityId, slotId) {
+            try {
+                const response = await fetch(`${API_URL}/api/bookings`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        user_id: currentUserId,
+                        facility_id: facilityId,
+                        slot_id: slotId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    alert(data.message || data.error);
+                    return;
+                }
+
+                alert("✅ Booking confirmed!");
+                loadBookings();
+                loadFacilities();
+
+            } catch (error) {
+                console.error("Booking error:", error);
+                alert("Something went wrong.");
+            }
+        }
+        function changeUser() {
+            const select = document.getElementById("userSelect");
+
+            currentUserId = Number(select.value);
+
+            loadBookings();
+            loadwaitlist();
+            loadBookingHistory();
+        }
+        function showSection(sectionId, button) {
+            // Hide all sections
+            document.querySelectorAll(".tab-content").forEach(section => {
+                section.classList.remove("active");
+            });
+
+            // Remove active from all tab buttons
+            document.querySelectorAll(".tab-btn").forEach(btn => {
+                btn.classList.remove("active");
+            });
+
+            // Show selected section
+            document.getElementById(sectionId).classList.add("active");
+
+            // Highlight selected button
+            button.classList.add("active");
+        }
+
+        async function loadFacilities() {
+            console.log("loadFacilities started");
+            try {
+                const response = await fetch(`${API_URL}/api/facilities`);
+                const facilities = await response.json();
+
+                const container = document.getElementById("facilities");
+                container.innerHTML = "";
+
+                facilities.forEach(facility => {
+                    const div = document.createElement("div");
+
+                    div.className = "facility-card";
+
+                    div.innerHTML = `
+                <h3>🏟️ ${facility.name}</h3>
+
+                <p>🏸 Sport: ${facility.type}</p>
+
+                <p>📍 ${facility.location}</p>
+
+                <button
+                    class="view-slots"
+                    onclick="loadSlots(${facility.facility_id})">
+                    View Available Slots
+                </button>
+
+                <div
+                    class="slots"
+                    id="slots-${facility.facility_id}">
+                </div>
+            `;
+
+                    container.appendChild(div);
+                });
+
+            } catch (error) {
+                console.error("Error loading facilities:", error);
+            }
+        }
+
+        async function loadSlots(facilityId) {
+            try {
+                const response = await fetch(
+                    `${API_URL}/api/facilities/${facilityId}/slots`
+                );
+
+                const slots = await response.json();
+
+                const bookedResponse = await fetch(
+                    `${API_URL}/api/bookings/slot-ids`
+                );
+
+                const bookedSlotIds = await bookedResponse.json();
+
+                const container =
+                    document.getElementById(`slots-${facilityId}`);
+
+                container.innerHTML = "";
+
+                slots.forEach(slot => {
+                    const button = document.createElement("button");
+
+                    button.className = "slot-btn";
+
+                    const isBooked = bookedSlotIds.includes(slot.slot_id);
+
+                    if (isBooked) {
+                        button.innerText =
+                            `${slot.start_time} - ${slot.end_time} | JOIN WAITLIST`;
+
+                        button.onclick = () =>
+                            joinWaitlist(
+                                facilityId,
+                                slot.slot_id
+                            );
+                    } else {
+                        button.innerText =
+                            `${slot.start_time} - ${slot.end_time} | BOOK`;
+
+                        button.onclick = () =>
+                            bookSlot(
+                                facilityId,
+                                slot.slot_id
+                            );
+                    }
+
+                    container.appendChild(button);
+                });
+
+            } catch (error) {
+                console.error("Error loading slots:", error);
+            }
+        }
+        async function joinWaitlist(facilityId, slotId) {
+            try {
+                const response = await fetch(
+                    `${API_URL}/api/waitlist`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            user_id: currentUserId,
+                            facility_id: facilityId,
+                            slot_id: slotId
+                        })
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    alert(data.error || data.message);
+                    return;
+                }
+
+                alert("✅ Joined waitlist!");
+
+            } catch (error) {
+                console.error("Waitlist error:", error);
+                alert("Something went wrong.");
+            }
+        }
+        async function loadBookings() {
+            try {
+                const response = await fetch(`${API_URL}/api/bookings`);
+                const bookings = await response.json();
+                const userBookings = bookings.filter(
+                    booking => booking.user_id === currentUserId
+                );
+
+                const container = document.getElementById("bookings");
+
+                container.innerHTML = "";
+
+                userBookings
+                    .filter(booking => booking.status === "CONFIRMED")
+                    .forEach(booking => {
+                        const div = document.createElement("div");
+
+                        div.className = "booking-card";
+
+                        div.innerHTML = `
+                    <h3>${booking.facility_name}</h3>
+
+                    <p>
+                        📅 ${new Date(booking.slot_date).toLocaleDateString()}
+                    </p>
+
+                    <p>
+                        🕐 ${booking.start_time} - ${booking.end_time}
+                    </p>
+
+                    <p>
+                        Status: <strong>${booking.status}</strong>
+                    </p>
+
+                    <button
+                        class="cancel-btn"
+                        onclick="cancelBooking(${booking.booking_id})">
+                        Cancel Booking
+                    </button>
+                `;
+
+                        container.appendChild(div);
+                    });
+            } catch (error) {
+                console.error("Error loading bookings:", error);
+            }
+        }
+        async function loadWaitlist() {
+            try {
+                const response = await fetch(`${API_URL}/api/waitlist`);
+                const waitlist = await response.json();
+
+                const container = document.getElementById("waitlist");
+                container.innerHTML = "";
+
+                waitlist.forEach(item => {
+                    if (Number(item.user_id) !== Number(currentUserId)) {
+                        return;
+                    }
+
+                    const div = document.createElement("div");
+                    div.className = "booking-card";
+
+                    div.innerHTML = `
+                <h3>🏟️ ${item.facility_name}</h3>
+                <p>📅 ${new Date(item.slot_date).toLocaleDateString()}</p>
+                <p>🕐 ${item.start_time} - ${item.end_time}</p>
+                <p>Position: <strong>#${item.position}</strong></p>
+                <p>Status: <strong>WAITING</strong></p>
+            `;
+
+                    container.appendChild(div);
+                });
+
+                if (container.innerHTML === "") {
+                    container.innerHTML = "<p>You are not on any waitlist.</p>";
+                }
+
+            } catch (error) {
+                console.error("Waitlist error:", error);
+            }
+        }
+        async function loadBookingHistory() {
+            try {
+                const response = await fetch(`${API_URL}/api/bookings`);
+                const bookings = await response.json();
+
+                const container = document.getElementById("history");
+                container.innerHTML = "";
+
+                const userHistory = bookings.filter(
+                    booking => Number(booking.user_id) === Number(currentUserId)
+                );
+
+                if (userHistory.length === 0) {
+                    container.innerHTML = "<p>No booking history.</p>";
+                    return;
+                }
+
+                userHistory.slice(0, 5).forEach(booking => {
+                    const div = document.createElement("div");
+
+                    div.className = "booking-card";
+
+                    div.innerHTML = `
+                <h3>🏟️ ${booking.facility_name}</h3>
+
+                <p>
+                    📅 ${new Date(booking.slot_date).toLocaleDateString()}
+                </p>
+
+                <p>
+                    🕐 ${booking.start_time} - ${booking.end_time}
+                </p>
+
+                <p>
+                    Status: <strong>${booking.status}</strong>
+                </p>
+            `;
+
+                    container.appendChild(div);
+                });
+
+            } catch (error) {
+                console.error("History error:", error);
+            }
+        }
+        async function cancelBooking(bookingId) {
+            try {
+                const response = await fetch(
+                    `${API_URL}/api/bookings/${bookingId}`,
+                    {
+                        method: "DELETE"
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    alert(data.error || data.message);
+                    return;
+                }
+
+                alert("✅ Booking cancelled!");
+
+                loadBookings();
+                loadFacilities();
+
+            } catch (error) {
+                console.error("Cancellation error:", error);
+                alert("Something went wrong.");
+            }
+        }
+
+
+        loadFacilities();
+        loadBookings();
+        loadWaitlist();
+        loadBookingHistory();
+    </script>
+
+</body>
+
+</html>
