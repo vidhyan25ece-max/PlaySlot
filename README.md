@@ -14,10 +14,15 @@ Whether you're looking to book a game with friends or manage your upcoming reser
 
 ## Demo Login Credentials
 
+### Account 1
 **Email:** studentA@iitg.ac.in  
 **Password:** student123
 
-> You can use these credentials to test the PlaySlot application.
+### Account 2
+**Email:** studentB@iitg.ac.in  
+**Password:** student123
+
+> Use the two accounts to test booking, waitlist, cancellation, and waitlist promotion.
 
 ## Source Code
 
