@@ -12,6 +12,13 @@ Whether you're looking to book a game with friends or manage your upcoming reser
 
 [Open PlaySlot Login](https://visionary-squirrel-fc1295.netlify.app/login.html)
 
+## Demo Login Credentials
+
+**Email:** studentA@iitg.ac.in  
+**Password:** student123
+
+> You can use these credentials to test the PlaySlot application.
+
 ## Source Code
 
 This repository contains the complete frontend and backend source code of PlaySlot, including the application's interface, server-side functionality, and database integration.
