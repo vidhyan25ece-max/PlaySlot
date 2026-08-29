@@ -10,7 +10,7 @@ Whether you're looking to book a game with friends or manage your upcoming reser
 
 [Open PlaySlot](https://visionary-squirrel-fc1295.netlify.app/)
 
-Try the live application and explore its features.
+[Open PlaySlot Login](https://visionary-squirrel-fc1295.netlify.app/login.html)
 
 ## Source Code
 
@@ -33,3 +33,4 @@ This repository contains the complete frontend and backend source code of PlaySl
 * Deployment: Netlify and Render
 
 ### PlaySlot — Find. Book. Play.
+
