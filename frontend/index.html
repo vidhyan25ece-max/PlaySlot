@@ -269,7 +269,7 @@
                 const response = await fetch(`${API_URL}/api/bookings`);
                 const bookings = await response.json();
                 const userBookings = bookings.filter(
-                    booking => Number(booking.user_id) === Number(currentUserId)
+                    booking => Number(booking.user_id) === Number(currentUserId));
 
                 const container = document.getElementById("bookings");
 
